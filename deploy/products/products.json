@@ -40,7 +40,8 @@
         "ignore_unknown_usernames": true,
         "allow_domain_discovery": false,
         "disable_login_with_email": false,
-        "disable_login_with_phone": false
+        "disable_login_with_phone": false,
+        "default_redirect_uri": "https://app.freightclaims.com/"
       },
       "roles": [
         {
@@ -62,7 +63,7 @@
         {
           "environment": "staging",
           "name": "FreightClaims staging web",
-          "base_url": "https://app.staging.freightclaims.ensombl.io",
+          "base_url": "https://app.staging.freightclaims.com",
           "management_service_account": {
             "id": "f1659442-a65a-4da6-bbd7-4efa55b7c7ef",
             "username": "freightclaims-staging-management",
@@ -72,7 +73,7 @@
         {
           "environment": "production",
           "name": "FreightClaims production web",
-          "base_url": "https://app.freightclaims.ensombl.io",
+          "base_url": "https://app.freightclaims.com",
           "management_service_account": {
             "id": "7ea4dd05-da93-4a19-a63b-be7e9bd2bef1",
             "username": "freightclaims-production-management",
