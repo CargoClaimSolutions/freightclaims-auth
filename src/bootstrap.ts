@@ -293,25 +293,27 @@ export async function bootstrapCatalog(
             `ZITADEL_ROTATE_MISSING_CLIENT_SECRETS=true once to rotate it.`,
         );
       }
-      if (product.instance_org_user_lookup && ownerOrganization.id !== instanceOrganization.id) {
-        await client.ensureAdministrator({
-          userId: account.id,
-          resource: { organizationId: instanceOrganization.id },
-          roles: ["ORG_OWNER_VIEWER"],
-        });
-      } else {
-        await client.deleteAdministrator({
-          userId: account.id,
-          resource: { organizationId: instanceOrganization.id },
-        });
-      }
+      // When the product owns the instance organization, its ORG_USER_MANAGER
+      // grant below is the account's only membership there.
       if (ownerOrganization.id !== instanceOrganization.id) {
-        await client.ensureAdministrator({
-          userId: account.id,
-          resource: { organizationId: ownerOrganization.id },
-          roles: ["ORG_USER_MANAGER"],
-        });
+        if (product.instance_org_user_lookup) {
+          await client.ensureAdministrator({
+            userId: account.id,
+            resource: { organizationId: instanceOrganization.id },
+            roles: ["ORG_OWNER_VIEWER"],
+          });
+        } else {
+          await client.deleteAdministrator({
+            userId: account.id,
+            resource: { organizationId: instanceOrganization.id },
+          });
+        }
       }
+      await client.ensureAdministrator({
+        userId: account.id,
+        resource: { organizationId: ownerOrganization.id },
+        roles: ["ORG_USER_MANAGER"],
+      });
       await client.deleteAdministrator({ userId: account.id, resource: { projectId } });
       await client.deleteAdministrator({
         userId: account.id,

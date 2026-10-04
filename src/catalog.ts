@@ -143,6 +143,18 @@ export const catalogSchema = z
       }
       productIds.add(product.id);
 
+      if (
+        product.owner_organization.name === catalog.instance_organization.name &&
+        product.owner_organization.domain !== catalog.instance_organization.domain
+      ) {
+        // One organization has one primary domain; two would swap it on every bootstrap.
+        context.addIssue({
+          code: "custom",
+          message: `Product ${product.id} owns the instance organization but declares another domain`,
+          path: ["products", productIndex, "owner_organization", "domain"],
+        });
+      }
+
       const roles = new Set(product.roles.map((role) => role.key));
       const localUserKeys = new Set<string>();
       const localUserIds = new Set<string>();

@@ -2,8 +2,8 @@
   "issuer": "https://auth.freightclaims.com",
   "console_path": "/ui/console",
   "instance_organization": {
-    "name": "Ensombl",
-    "domain": "operators.freightclaims.com"
+    "name": "FreightClaims",
+    "domain": "freightclaims.com"
   },
   "email": {
     "from_address": "noreply@notifications.freightclaims.com",
