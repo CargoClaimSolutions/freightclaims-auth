@@ -22,16 +22,20 @@ therefore makes the login screen deterministic from the OIDC client before the u
 OIDC request includes the product organization scope, so only identities owned by that product
 organization can log in. Customer-tenant selection and branding belong to the product UI.
 
-Organization domains are identity-discovery and username-suffix domains, not service hostnames.
-The catalog makes `operators.freightclaims.com` primary for the Ensombl instance organization and
-`freightclaims.com` primary for the FreightClaims organization. Bootstrap removes the automatic
-`<organization>.<issuer host>` domains generated from ZITADEL's external hostname.
+The instance has exactly one organization, FreightClaims. ZITADEL creates it as the first-instance
+organization, holding the initial administrator and the bootstrap and Login V2 machine accounts, and
+the catalog names it as both the instance organization and the FreightClaims owner organization, so
+the first catalog bootstrap brands it. Login V2 shows the default organization's branding when a
+request names no organization, so every login screen on the instance is FreightClaims-branded.
 
-ZITADEL refuses a username `name@domain` when an organization other than the user's own has
-verified `domain` (`COMMAND-SFd21`), and usernames are unique across the instance. So that every
-FreightClaims identity can take its email address as its username, the instance organization's
-domain is one no person has a mailbox at, and the initial administrator's username is
-`zitadel-admin`, not an email address.
+Organization domains are identity-discovery and username-suffix domains, not service hostnames.
+The catalog makes `freightclaims.com` primary for the FreightClaims organization. Bootstrap removes
+the automatic `<organization>.<issuer host>` domain generated from ZITADEL's external hostname.
+
+ZITADEL refuses a username `name@domain` only when an organization other than the user's own has
+verified `domain` (`COMMAND-SFd21`), and no other organization exists, so every FreightClaims
+identity can take its email address as its username. The initial administrator's username is
+`zitadel-admin`.
 
 Products have no default ZITADEL project roles. Each product may independently declare roles in the
 catalog. Bootstrap enables role claims when roles exist, does not require a role for login, and does
@@ -54,8 +58,8 @@ configured initial administrator owns instance bootstrap. Product management ser
 no instance administrator role. They receive `ORG_USER_MANAGER` on the product organization so they
 can invite and manage product identities; a product that sets `instance_org_user_lookup` in the
 catalog also gives its management accounts `ORG_OWNER_VIEWER` (read only) on the instance
-organization, so the product can resolve — but never modify — identities owned by named Ensombl
-operators who also use that product. This stays an organization role — the accounts still hold no
+organization, so the product can resolve — but never modify — identities owned by that
+organization. FreightClaims owns the instance organization, so the flag has no effect here. This stays an organization role — the accounts still hold no
 `IAM_*` instance role. Declaring global project roles never grants a runtime or migration account
 project administration; role definitions and assignments remain explicit control-plane operations.
 

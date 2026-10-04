@@ -221,6 +221,15 @@ describe("product catalog", () => {
     ).toThrow(/default_redirect_uri is not under an application of freightcheck/u);
   });
 
+  it("rejects an instance organization the product owns under another domain", () => {
+    const result = catalogSchema.safeParse({
+      ...baseCatalog,
+      instance_organization: { name: "FreightCheck", domain: "operators.freightcheck.io" },
+    });
+    expect(result.success).toBe(false);
+    expect(result.error?.issues[0]?.message).toContain("owns the instance organization");
+  });
+
   it("rejects a local profile without a local application for the selected product", () => {
     expect(() =>
       applyLocalCatalogProfile(catalogSchema.parse(baseCatalog), {
@@ -386,14 +395,20 @@ describe("FreightClaims-only instance", () => {
     expect(catalog.products.map((product) => product.id)).toEqual(["freightclaims"]);
   });
 
-  it("keeps the instance organization off every domain a FreightClaims user can have", () => {
+  it.each([
+    ["products.json", "deploy/dokploy/compose.yml"],
+    ["products.local.json", "docker-compose.yml"],
+  ])("makes FreightClaims the only organization in %s, created by %s", (fileName, composePath) => {
     const catalog = catalogSchema.parse(
-      JSON.parse(
-        readFileSync(new URL("../deploy/products/products.json", import.meta.url), "utf8"),
-      ),
+      JSON.parse(readFileSync(new URL(`../deploy/products/${fileName}`, import.meta.url), "utf8")),
     );
-    // ZITADEL refuses a username at a domain another organization has verified.
-    expect(catalog.instance_organization.domain).toBe("operators.freightclaims.com");
+    const compose = readFileSync(new URL(`../${composePath}`, import.meta.url), "utf8");
+    // The bootstrap brands the owner organization, so the first-instance organization is branded
+    // from the deploy that creates it.
+    expect(catalog.instance_organization).toEqual(catalog.products[0]?.owner_organization);
+    expect(compose).toContain(
+      `ZITADEL_FIRSTINSTANCE_ORG_NAME: ${catalog.instance_organization.name}\n`,
+    );
     expect(catalog.issuer).toBe(catalog.products[0]?.auth_origin);
   });
 });

@@ -2,8 +2,8 @@
   "issuer": "http://localhost:24455",
   "console_path": "/ui/console",
   "instance_organization": {
-    "name": "Ensombl",
-    "domain": "ensombl.localhost"
+    "name": "FreightClaims",
+    "domain": "freightclaims.localhost"
   },
   "email": {
     "from_address": "noreply@notifications.freightclaims.com",

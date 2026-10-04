@@ -19,20 +19,18 @@ Administrator roles authorize management of ZITADEL itself. They never grant pro
 | Organization | `ORG_OWNER`, `ORG_USER_MANAGER` | Administer a product identity organization or its users |
 | Project | `PROJECT_OWNER` | Administer one project's apps and optional project roles |
 
-Human instance ownership is reserved for named Ensombl operators. Product runtime accounts receive
+Human instance ownership is reserved for the named initial administrator. Product runtime accounts receive
 `ORG_USER_MANAGER` on their product organization. A product that sets `instance_org_user_lookup`
 in the catalog also gives its management accounts `ORG_OWNER_VIEWER` (read only) on the instance
-organization, so the product can resolve identities owned by named Ensombl operators who also use
-that product; this stays an organization role, not an `IAM_*` instance role. Product runtime and
+organization, so the product can resolve identities owned by that organization when it is not the
+product's own; this stays an organization role, not an `IAM_*` instance role. Product runtime and
 migration accounts are not project administrators.
 
 ## Product boundary
 
 Every product has one owner organization. It owns the product project, OIDC applications, service
-accounts, login branding, and the human identities created for that product. A named Ensombl
-operator keeps a single identity in the instance organization and may still be admitted to a
-product that sets `instance_org_user_lookup`; the product reads that identity but never owns or
-modifies it. Consumer application tenancy is not represented by ZITADEL organizations.
+accounts, login branding, and the human identities created for that product. FreightClaims owns the
+instance organization, so the instance has no identities outside it. Consumer application tenancy is not represented by ZITADEL organizations.
 
 The OIDC request pins the product owner organization so another product's identities cannot enter
 that product's login flow. The issuer is the one named in `deploy/products/products.json`.

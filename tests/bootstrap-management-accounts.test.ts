@@ -155,6 +155,34 @@ describe("management service account instance-organization grant", () => {
   });
 });
 
+describe("product that owns the instance organization", () => {
+  it("keeps ORG_USER_MANAGER as the management account's membership of that organization", async () => {
+    const { client, ensureAdministrator, deleteAdministrator } = mockClient();
+    const catalog = catalogFor(false);
+    catalog.instance_organization = { name: "FreightCheck", domain: "freightcheck.io" };
+    vi.mocked(client.listOrganizations).mockResolvedValue([
+      { id: "freightcheck-organization-id", name: "FreightCheck" },
+    ]);
+
+    await bootstrapCatalog(client, catalog, { rotateMissingSecrets: true });
+
+    expect(client.createOrganization).not.toHaveBeenCalled();
+    expect(ensureAdministrator).toHaveBeenCalledWith({
+      userId: managementServiceAccountId,
+      resource: { organizationId: "freightcheck-organization-id" },
+      roles: ["ORG_USER_MANAGER"],
+    });
+    expect(deleteAdministrator).not.toHaveBeenCalledWith(
+      expect.objectContaining({ resource: { organizationId: "freightcheck-organization-id" } }),
+    );
+    expect(client.applyBranding).toHaveBeenCalledWith(
+      "freightcheck-organization-id",
+      expect.anything(),
+      undefined,
+    );
+  });
+});
+
 describe("login policy default redirect", () => {
   it("hands the product's default redirect URI to the organization's login policy", async () => {
     const { client } = mockClient();
