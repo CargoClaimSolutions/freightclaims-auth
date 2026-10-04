@@ -2,15 +2,15 @@
 
 ## Identity and tenancy model
 
-One ZITADEL instance is the global Ensombl identity service. Each product organization owns the
-identities admitted to that product. Customer tenancy is application data and is not represented
+This ZITADEL instance serves FreightClaims alone. The FreightClaims organization owns the
+identities admitted to FreightClaims. Customer tenancy is application data and is not represented
 by ZITADEL organizations.
 
 | Ensombl concept | ZITADEL object |
 | --- | --- |
 | Global identity platform | Instance |
 | Product identity owner and product branding | Product owner organization |
-| FreightClaims or FreightCheck | Project |
+| FreightClaims | Project |
 | Local, staging, or production BFF | OIDC application |
 | Human admitted to a product | User in the product organization |
 | Customer tenant, membership, and role | Product database |
@@ -23,10 +23,15 @@ OIDC request includes the product organization scope, so only identities owned b
 organization can log in. Customer-tenant selection and branding belong to the product UI.
 
 Organization domains are identity-discovery and username-suffix domains, not service hostnames.
-The catalog makes `ensombl.io` primary for the Ensombl organization and the declared
-`freightclaims.com` and `freightcheck.io` domains primary for their respective product owners.
-Bootstrap removes the automatic `<organization>.auth.ensombl.io` domains generated from ZITADEL's
-external hostname.
+The catalog makes `operators.freightclaims.com` primary for the Ensombl instance organization and
+`freightclaims.com` primary for the FreightClaims organization. Bootstrap removes the automatic
+`<organization>.<issuer host>` domains generated from ZITADEL's external hostname.
+
+ZITADEL refuses a username `name@domain` when an organization other than the user's own has
+verified `domain` (`COMMAND-SFd21`), and usernames are unique across the instance. So that every
+FreightClaims identity can take its email address as its username, the instance organization's
+domain is one no person has a mailbox at, and the initial administrator's username is
+`zitadel-admin`, not an email address.
 
 Products have no default ZITADEL project roles. Each product may independently declare roles in the
 catalog. Bootstrap enables role claims when roles exist, does not require a role for login, and does
@@ -35,7 +40,7 @@ not assign roles implicitly.
 ## Authentication
 
 Products use Authorization Code with PKCE through a confidential BFF client. The canonical issuer
-is `https://auth.ensombl.io`. The signed subject identifies the human. Each product resolves that
+is the catalog's `issuer`. The signed subject identifies the human. Each product resolves that
 subject to its own memberships and establishes an RLS context; authentication alone never grants
 tenant data access.
 
@@ -54,12 +59,10 @@ operators who also use that product. This stays an organization role — the acc
 `IAM_*` instance role. Declaring global project roles never grants a runtime or migration account
 project administration; role definitions and assignments remain explicit control-plane operations.
 
-FreightClaims and FreightCheck each have one dedicated migration service account with
-`ORG_USER_MANAGER` on their own organization. Neither receives `IAM_OWNER`, `IAM_ORG_MANAGER`, nor
-general user-management permission across the instance. The hosted FreightClaims account
-additionally receives `IAM_LOGIN_CLIENT` solely for the bounded imported-password verification
-test; FreightCheck's migration account has no `verify_imported_passwords` declaration and does not
-receive `IAM_LOGIN_CLIENT`, since it imports no legacy password.
+FreightClaims has one dedicated migration service account with `ORG_USER_MANAGER` on its own
+organization. It receives neither `IAM_OWNER`, `IAM_ORG_MANAGER`, nor general user-management
+permission across the instance. The hosted account additionally receives `IAM_LOGIN_CLIENT` solely
+for the bounded imported-password verification test. Staging and production share this account.
 
 ## Legacy password migration
 
@@ -73,15 +76,11 @@ An imported Argon2id PHC must authenticate with the legacy password, require an 
 change, and preserve the signed subject used by the product database. ZITADEL rehashes a verified
 legacy password using its active password hasher.
 
-This legacy-password contract is FreightClaims-specific. FreightCheck's migration service account
-creates new users via `POST /v2/users/new` without a legacy password import; it does not carry
-`hashedPassword`, so it needs no imported-password verification and no `IAM_LOGIN_CLIENT` grant.
-
 ## Branding and email
 
 ZITADEL owns instance and product login branding. Each product project enforces its
 owner organization's branding from the first login screen. Each application uses its product's
-`auth_origin` as its Login V2 base URI while `auth.ensombl.io` remains the only issuer. Product
+`auth_origin` as its Login V2 base URI while the catalog's `issuer` remains the only issuer. Product
 Login V2 hosts are instance trusted domains; the stock Login V2 proxy sends the canonical instance
 host separately from the browser-facing product host. The instance-wide Login V2 override stays
 disabled so ZITADEL honors those per-application hosts; the Management Console is explicitly pinned
@@ -93,14 +92,15 @@ self-registration and external identity providers, and applies the canonical Fre
 green palette, neutral background, and light theme through ZITADEL's organization branding and
 asset APIs. Applications never render or collect credentials themselves.
 
-ZITADEL system notifications use `Ensombl <noreply@notifications.ensombl.io>` through Resend SMTP
+ZITADEL system notifications use `FreightClaims <noreply@notifications.freightclaims.com>`, the
+catalog's `email` block, through Resend SMTP
 with authenticated STARTTLS on port 587. The one-shot catalog bootstrap applies the active provider
 through ZITADEL's Admin API so an existing instance receives the same configuration as a fresh
 instance. ZITADEL sends every message, invitations included, from that sender: `email_from_name`
 in the catalog is not applied to ZITADEL mail, and the sender is an instance setting that no
 organization can override. A product that invites a user controls the wording and the link, not the
 sender: it passes `applicationName` and a `urlTemplate` with the `invite_code` request. Generic
-account recovery has no product context and intentionally uses the Ensombl default.
+account recovery uses the same FreightClaims sender.
 
 A user who finishes a flow ZITADEL did not start from an OIDC request, such as activating an
 invitation, is sent to the product organization's login-policy `defaultRedirectUri`; without one

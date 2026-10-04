@@ -69,7 +69,7 @@ describe("product catalog", () => {
       { key: "platform_admin", display_name: "Platform Administrator" },
     ]);
     for (const product of catalog.products.filter(
-      (candidate) => candidate.id !== "freightclaims" && candidate.id !== "freightcheck",
+      (candidate) => candidate.id !== "freightclaims",
     )) {
       expect(rolesForProduct(catalog, product)).toEqual([]);
     }
@@ -83,18 +83,11 @@ describe("product catalog", () => {
       JSON.parse(readFileSync(new URL(`../deploy/products/${fileName}`, import.meta.url), "utf8")),
     );
     const freightclaims = catalog.products.find((product) => product.id === "freightclaims");
-    const freightcheck = catalog.products.find((product) => product.id === "freightcheck");
 
     expect(freightclaims?.login_policy).toMatchObject({
       allow_self_registration: false,
       disable_login_with_email: false,
       disable_login_with_phone: false,
-      ignore_unknown_usernames: true,
-    });
-    expect(freightcheck?.login_policy).toMatchObject({
-      allow_self_registration: true,
-      disable_login_with_email: false,
-      disable_login_with_phone: true,
       ignore_unknown_usernames: true,
     });
   });
@@ -106,10 +99,8 @@ describe("product catalog", () => {
       ),
     );
     const freightclaims = catalog.products.find((product) => product.id === "freightclaims");
-    const freightcheck = catalog.products.find((product) => product.id === "freightcheck");
 
     expect(freightclaims?.migration_service_account?.verify_imported_passwords).toBe(true);
-    expect(freightcheck?.migration_service_account?.verify_imported_passwords).toBe(false);
   });
 
   it.each([
@@ -119,10 +110,8 @@ describe("product catalog", () => {
     const catalog = catalogSchema.parse(
       JSON.parse(readFileSync(new URL(`../deploy/products/${fileName}`, import.meta.url), "utf8")),
     );
-    const freightcheck = catalog.products.find((product) => product.id === "freightcheck");
     const freightclaims = catalog.products.find((product) => product.id === "freightclaims");
 
-    expect(freightcheck?.instance_org_user_lookup).toBe(false);
     expect(freightclaims?.instance_org_user_lookup).toBe(false);
   });
 
@@ -193,16 +182,13 @@ describe("product catalog", () => {
       issuer: "http://localhost:26041",
     });
     const freightclaims = configured.products.find((product) => product.id === "freightclaims");
-    const freightcheck = configured.products.find((product) => product.id === "freightcheck");
 
     expect(configured.issuer).toBe("http://localhost:26041");
     expect(configured.products.every((product) => product.auth_origin === configured.issuer)).toBe(
       true,
     );
     expect(freightclaims?.applications[0]?.base_url).toBe("http://localhost:26033");
-    expect(freightcheck?.applications[0]?.base_url).toBe("http://localhost:5173");
     expect(freightclaims?.login_policy.default_redirect_uri).toBe("http://localhost:26033/");
-    expect(freightcheck?.login_policy.default_redirect_uri).toBeUndefined();
   });
 
   it.each([
@@ -213,14 +199,12 @@ describe("product catalog", () => {
       JSON.parse(readFileSync(new URL(`../deploy/products/${fileName}`, import.meta.url), "utf8")),
     );
     const freightclaims = catalog.products.find((product) => product.id === "freightclaims");
-    const freightcheck = catalog.products.find((product) => product.id === "freightcheck");
 
     const redirect = freightclaims?.login_policy.default_redirect_uri;
     expect(redirect).toBeDefined();
     expect(
       freightclaims?.applications.map((application) => new URL(application.base_url).origin),
     ).toContain(new URL(String(redirect)).origin);
-    expect(freightcheck?.login_policy.default_redirect_uri).toBeUndefined();
   });
 
   it("rejects a default redirect that is not under one of the product's applications", () => {
@@ -391,26 +375,25 @@ describe("product catalog", () => {
   });
 });
 
-describe("FreightCheck platform roles", () => {
-  it.each(["products.json", "products.local.json"])("declares staff roles in %s", (fileName) => {
+describe("FreightClaims-only instance", () => {
+  it.each([
+    "products.json",
+    "products.local.json",
+  ])("serves FreightClaims alone in %s", (fileName) => {
     const catalog = catalogSchema.parse(
       JSON.parse(readFileSync(new URL(`../deploy/products/${fileName}`, import.meta.url), "utf8")),
     );
-    const product = catalog.products.find((entry) => entry.id === "freightcheck");
-    expect(product?.roles?.map((role) => role.key)).toEqual(["platform_admin", "platform_support"]);
+    expect(catalog.products.map((product) => product.id)).toEqual(["freightclaims"]);
   });
 
-  it("keeps the developer roleless alongside the local admin", () => {
+  it("keeps the instance organization off every domain a FreightClaims user can have", () => {
     const catalog = catalogSchema.parse(
       JSON.parse(
-        readFileSync(new URL("../deploy/products/products.local.json", import.meta.url), "utf8"),
+        readFileSync(new URL("../deploy/products/products.json", import.meta.url), "utf8"),
       ),
     );
-    const users = catalog.products.find((entry) => entry.id === "freightcheck")?.local_fixture
-      ?.users;
-    expect(users?.find((user) => user.email === "developer@freightcheck.test")?.roles).toEqual([]);
-    expect(users?.find((user) => user.email === "platform-admin@freightcheck.test")?.roles).toEqual(
-      ["platform_admin"],
-    );
+    // ZITADEL refuses a username at a domain another organization has verified.
+    expect(catalog.instance_organization.domain).toBe("operators.freightclaims.com");
+    expect(catalog.issuer).toBe(catalog.products[0]?.auth_origin);
   });
 });
