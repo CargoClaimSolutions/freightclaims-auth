@@ -6,8 +6,8 @@
     "domain": "ensombl.localhost"
   },
   "email": {
-    "from_address": "noreply@notifications.ensombl.io",
-    "default_from_name": "Ensombl"
+    "from_address": "noreply@notifications.freightclaims.com",
+    "default_from_name": "FreightClaims"
   },
   "products": [
     {
@@ -148,82 +148,6 @@
             "id": "e5ba219b-1bbd-40c3-9854-11ce44022a3b",
             "username": "freightclaims-local-management",
             "display_name": "FreightClaims local management"
-          }
-        }
-      ]
-    },
-    {
-      "id": "freightcheck",
-      "display_name": "FreightCheck",
-      "auth_origin": "http://localhost:24455",
-      "email_from_name": "FreightCheck",
-      "owner_organization": {
-        "name": "FreightCheck",
-        "domain": "freightcheck.localhost"
-      },
-      "login_policy": {
-        "allow_self_registration": true
-      },
-      "branding": {
-        "primary_color": "#7F56D9",
-        "warn_color": "#D92D20",
-        "background_color": "#F9FAFB",
-        "font_color": "#101828",
-        "primary_color_dark": "#B692F6",
-        "warn_color_dark": "#FDA29B",
-        "background_color_dark": "#1D2939",
-        "font_color_dark": "#F9FAFB"
-      },
-      "roles": [
-        {
-          "key": "platform_admin",
-          "display_name": "Platform admin"
-        },
-        {
-          "key": "platform_support",
-          "display_name": "Platform support"
-        }
-      ],
-      "migration_service_account": {
-        "id": "b43c7733-d886-4611-aa29-c3577ace9547",
-        "username": "freightcheck-local-migration",
-        "display_name": "FreightCheck local migration"
-      },
-      "local_fixture": {
-        "tenant": {
-          "id": "42c5e53f-00f9-4648-bcee-35a4b79f799e",
-          "name": "FreightCheck Local Development"
-        },
-        "users": [
-          {
-            "key": "developer",
-            "id": "7d869e47-2864-489e-84af-23cd4a924f91",
-            "email": "developer@freightcheck.test",
-            "display_name": "FreightCheck Developer",
-            "password": "FreightCheck-Dev-2026!",
-            "roles": []
-          },
-          {
-            "key": "platform-admin",
-            "id": "f5a6f1ac-5d44-4902-88c7-529691fcd641",
-            "email": "platform-admin@freightcheck.test",
-            "display_name": "FreightCheck Platform Admin",
-            "password": "FreightCheck-Admin-2026!",
-            "password_change_required": false,
-            "roles": ["platform_admin"]
-          }
-        ]
-      },
-      "applications": [
-        {
-          "environment": "local",
-          "name": "FreightCheck local web",
-          "base_url": "http://localhost:5173",
-          "development_mode": true,
-          "management_service_account": {
-            "id": "ac7dd065-a112-474d-9d04-8c53a9e37ff0",
-            "username": "freightcheck-local-management",
-            "display_name": "FreightCheck local management"
           }
         }
       ]

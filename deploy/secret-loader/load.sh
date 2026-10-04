@@ -3,7 +3,7 @@ set -eu
 
 : "${BWS_ACCESS_TOKEN:?BWS_ACCESS_TOKEN is required}"
 : "${BWS_PROJECT_ID:?BWS_PROJECT_ID is required}"
-: "${ZITADEL_SECRET_DIRECTORY:=/run/ensombl-auth}"
+: "${ZITADEL_SECRET_DIRECTORY:=/run/freightclaims-auth}"
 
 umask 077
 mkdir -p "$ZITADEL_SECRET_DIRECTORY"
@@ -64,9 +64,9 @@ jq -n \
           }
         },
         TLS: true,
-        From: "noreply@notifications.ensombl.io",
-        FromName: "Ensombl",
-        ReplyToAddress: "noreply@notifications.ensombl.io"
+        From: "noreply@notifications.freightclaims.com",
+        FromName: "FreightClaims",
+        ReplyToAddress: "noreply@notifications.freightclaims.com"
       }
     }
   }' >"$ZITADEL_SECRET_DIRECTORY/config.json"

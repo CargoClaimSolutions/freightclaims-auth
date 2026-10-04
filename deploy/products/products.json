@@ -1,13 +1,13 @@
 {
-  "issuer": "https://auth.ensombl.io",
+  "issuer": "https://auth.freightclaims.com",
   "console_path": "/ui/console",
   "instance_organization": {
     "name": "Ensombl",
-    "domain": "ensombl.io"
+    "domain": "operators.freightclaims.com"
   },
   "email": {
-    "from_address": "noreply@notifications.ensombl.io",
-    "default_from_name": "Ensombl"
+    "from_address": "noreply@notifications.freightclaims.com",
+    "default_from_name": "FreightClaims"
   },
   "products": [
     {
@@ -78,66 +78,6 @@
             "id": "7ea4dd05-da93-4a19-a63b-be7e9bd2bef1",
             "username": "freightclaims-production-management",
             "display_name": "FreightClaims production management"
-          }
-        }
-      ]
-    },
-    {
-      "id": "freightcheck",
-      "display_name": "FreightCheck",
-      "auth_origin": "https://auth.freightcheck.io",
-      "email_from_name": "FreightCheck",
-      "owner_organization": {
-        "name": "FreightCheck",
-        "domain": "freightcheck.io"
-      },
-      "login_policy": {
-        "allow_self_registration": true
-      },
-      "migration_service_account": {
-        "id": "1c7e65a1-d014-4264-afb2-bcdfa3030556",
-        "username": "freightcheck-migration",
-        "display_name": "FreightCheck migration"
-      },
-      "branding": {
-        "primary_color": "#7F56D9",
-        "warn_color": "#D92D20",
-        "background_color": "#F9FAFB",
-        "font_color": "#101828",
-        "primary_color_dark": "#B692F6",
-        "warn_color_dark": "#FDA29B",
-        "background_color_dark": "#1D2939",
-        "font_color_dark": "#F9FAFB"
-      },
-      "roles": [
-        {
-          "key": "platform_admin",
-          "display_name": "Platform admin"
-        },
-        {
-          "key": "platform_support",
-          "display_name": "Platform support"
-        }
-      ],
-      "applications": [
-        {
-          "environment": "staging",
-          "name": "FreightCheck staging web",
-          "base_url": "https://app.staging.freightcheck.io",
-          "management_service_account": {
-            "id": "ed9353c3-d6ac-4f63-91fd-a5a92fbb284b",
-            "username": "freightcheck-staging-management",
-            "display_name": "FreightCheck staging management"
-          }
-        },
-        {
-          "environment": "production",
-          "name": "FreightCheck production web",
-          "base_url": "https://app.freightcheck.io",
-          "management_service_account": {
-            "id": "245097ab-5609-41b1-99cb-5f9d2efbbdb7",
-            "username": "freightcheck-production-management",
-            "display_name": "FreightCheck production management"
           }
         }
       ]

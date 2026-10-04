@@ -1,8 +1,10 @@
-# Ensombl Auth
+# FreightClaims Auth
 
-Ensombl Auth is the shared, self-hosted ZITADEL identity platform for Ensombl products. It owns
-authentication, credentials, account recovery, product login branding, OIDC applications, and
-product-scoped service accounts.
+This repository is FreightClaims' own self-hosted ZITADEL identity instance. It owns
+authentication, credentials, account recovery, login branding, OIDC applications, and service
+accounts for FreightClaims, and serves no other product. Its history is imported from
+`ensombl/ensombl-auth` `main` at `dac4888`. The hosted Compose project, Dokploy compose and Bitwarden
+project are named `freightclaims-auth`; the service names are unchanged.
 
 Customer tenants, memberships, application roles, permissions, and row-level security remain in
 each product database. ZITADEL organizations represent product identity ownership; they do not
@@ -57,9 +59,8 @@ tests/         Catalog, Compose, bootstrap, and policy tests
 
 ## Hosted service
 
-`https://auth.ensombl.io` is the canonical issuer. Product login hosts provide product branding
-while the issuer and APIs remain canonical. Dokploy builds the repository sources directly; this
-project does not publish container images.
+`https://auth.freightclaims.com` is the issuer and also serves Login V2 and the ZITADEL Console.
+Dokploy builds the repository sources directly; this project does not publish container images.
 
 See:
 

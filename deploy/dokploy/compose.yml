@@ -1,8 +1,8 @@
-name: ensombl-auth
+name: freightclaims-auth
 
 x-bws: &bws
-  BWS_ACCESS_TOKEN: ${BWS_ACCESS_TOKEN:?Inject the ensombl-auth Bitwarden access token}
-  BWS_PROJECT_ID: ${BWS_PROJECT_ID:?Set the non-secret ensombl-auth project UUID}
+  BWS_ACCESS_TOKEN: ${BWS_ACCESS_TOKEN:?Inject the freightclaims-auth Bitwarden access token}
+  BWS_PROJECT_ID: ${BWS_PROJECT_ID:?Set the non-secret freightclaims-auth project UUID}
 
 services:
   secret-loader:
@@ -13,7 +13,7 @@ services:
     environment:
       <<: *bws
     volumes:
-      - runtime-secrets:/run/ensombl-auth
+      - runtime-secrets:/run/freightclaims-auth
     networks:
       - secret-egress
 
@@ -24,21 +24,21 @@ services:
     command:
       - start-from-init
       - --config
-      - /run/ensombl-auth/config.json
+      - /run/freightclaims-auth/config.json
       - --steps
-      - /run/ensombl-auth/steps.yaml
+      - /run/freightclaims-auth/steps.yaml
       - --masterkeyFile
-      - /run/ensombl-auth/masterkey
+      - /run/freightclaims-auth/masterkey
     environment:
       ZITADEL_PORT: "8080"
-      ZITADEL_EXTERNALDOMAIN: auth.ensombl.io
+      ZITADEL_EXTERNALDOMAIN: auth.freightclaims.com
       ZITADEL_EXTERNALPORT: "443"
       ZITADEL_EXTERNALSECURE: "true"
       ZITADEL_TLS_ENABLED: "false"
       ZITADEL_SYSTEMDEFAULTS_PASSWORDHASHER_VERIFIERS: argon2
-      ZITADEL_FIRSTINSTANCE_INSTANCENAME: Ensombl
+      ZITADEL_FIRSTINSTANCE_INSTANCENAME: FreightClaims
       ZITADEL_FIRSTINSTANCE_ORG_NAME: Ensombl
-      ZITADEL_FIRSTINSTANCE_ORG_HUMAN_USERNAME: patrick@ensombl.io
+      ZITADEL_FIRSTINSTANCE_ORG_HUMAN_USERNAME: zitadel-admin
       ZITADEL_FIRSTINSTANCE_ORG_HUMAN_EMAIL_ADDRESS: patrick@ensombl.io
       ZITADEL_FIRSTINSTANCE_ORG_HUMAN_PASSWORDCHANGEREQUIRED: "false"
       ZITADEL_FIRSTINSTANCE_PATPATH: /zitadel/bootstrap/admin.pat
@@ -48,12 +48,12 @@ services:
       ZITADEL_FIRSTINSTANCE_ORG_LOGINCLIENT_MACHINE_USERNAME: login-client
       ZITADEL_FIRSTINSTANCE_ORG_LOGINCLIENT_MACHINE_NAME: ZITADEL Login
       ZITADEL_DEFAULTINSTANCE_FEATURES_LOGINV2_REQUIRED: "false"
-      ZITADEL_DEFAULTINSTANCE_FEATURES_LOGINV2_BASEURI: https://auth.ensombl.io/ui/v2/login/
-      ZITADEL_OIDC_DEFAULTLOGINURLV2: https://auth.ensombl.io/ui/v2/login/login?authRequest=
-      ZITADEL_OIDC_DEFAULTLOGOUTURLV2: https://auth.ensombl.io/ui/v2/login/logout?post_logout_redirect=
+      ZITADEL_DEFAULTINSTANCE_FEATURES_LOGINV2_BASEURI: https://auth.freightclaims.com/ui/v2/login/
+      ZITADEL_OIDC_DEFAULTLOGINURLV2: https://auth.freightclaims.com/ui/v2/login/login?authRequest=
+      ZITADEL_OIDC_DEFAULTLOGOUTURLV2: https://auth.freightclaims.com/ui/v2/login/logout?post_logout_redirect=
       ZITADEL_LOGSTORE_ACCESS_STDOUT_ENABLED: "true"
     volumes:
-      - runtime-secrets:/run/ensombl-auth:ro
+      - runtime-secrets:/run/freightclaims-auth:ro
       - bootstrap:/zitadel/bootstrap
     networks:
       - auth-internal
@@ -75,7 +75,7 @@ services:
       ZITADEL_API_URL: http://zitadel-api:8080
       NEXT_PUBLIC_BASE_PATH: /ui/v2/login
       ZITADEL_SERVICE_USER_TOKEN_FILE: /zitadel/bootstrap/login-client.pat
-      CUSTOM_REQUEST_HEADERS: X-ZITADEL-INSTANCE-HOST:auth.ensombl.io,Host:auth.ensombl.io,X-Forwarded-Proto:https
+      CUSTOM_REQUEST_HEADERS: X-ZITADEL-INSTANCE-HOST:auth.freightclaims.com,Host:auth.freightclaims.com,X-Forwarded-Proto:https
     volumes:
       - bootstrap:/zitadel/bootstrap:ro
     networks:
@@ -127,7 +127,7 @@ services:
     environment:
       <<: *bws
       ZITADEL_URL: http://zitadel-api:8080
-      ZITADEL_REQUEST_HOST: auth.ensombl.io
+      ZITADEL_REQUEST_HOST: auth.freightclaims.com
       ZITADEL_FORWARDED_PROTO: https
       ZITADEL_ADMIN_PAT_FILE: /zitadel/bootstrap/admin.pat
       PRODUCT_CATALOG_PATH: /app/deploy/products/products.json
