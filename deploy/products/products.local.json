@@ -34,7 +34,7 @@
       },
       "login_policy": {
         "allow_username_password": true,
-        "allow_self_registration": true,
+        "allow_self_registration": false,
         "allow_external_identity_providers": false,
         "allow_password_reset": true,
         "ignore_unknown_usernames": true,

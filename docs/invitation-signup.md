@@ -1,47 +1,59 @@
-# User-initiated invitation signup
+# Invitation account setup
 
-The FreightClaims catalogs enable ZITADEL's native registration on the FreightClaims owner
-organization. This is an organization-wide identity policy: anyone reaching that organization's
-login can deliberately create an account. It is neither an invitation-token check nor a
-per-client registration rule. Both hosted application environments share this identity policy.
-The dedicated instance serves FreightClaims only; other product policies and the catalog schema's
-disabled registration default are unchanged. Bootstrap uses the organization management endpoint
-with `x-zitadel-orgid`, not the instance default policy endpoint.
+FreightClaims keeps ZITADEL self-registration disabled. Sending or resending an application
+invitation stores an email invitation and sends the application link; it must not create a
+provider user, issue a provider initialization code or reset credentials. Opening that link,
+including a GET or prefetch, must not create an identity or accept membership.
 
-Both Compose definitions enable Login V2's native `EMAIL_VERIFICATION=true`. New accounts must
-verify their email through the provider's normal email-code flow before returning to the application;
-existing verified accounts keep their credentials and normal login. Login V2 caches organization
-settings, so an operator must account for cache refresh when activating catalog changes.
+## Platform setup contract
 
-An identity has no application tenant membership merely because it registered. The platform owns
-pending email invitations, expiry, resend, status and explicit membership acceptance. Sending or
-resending an invitation must not call ZITADEL human creation, credential reset or provider invitation
-APIs. Existing users use their current account and credentials. Two invitations for different tenants
-resolve independently against the current verified identity when accepted.
+1. Require a deliberate same-origin setup POST holding a valid, pending, unexpired and unrevoked
+   application invitation. Read the email from the stored invitation. Reject a mismatched signed-in
+   account, and never use a browser-selected email to create or select the provider user.
+2. Resolve the actual identity in the configured provider organization. An existing account with
+   password, passkey or external identity-provider credentials uses ordinary sign-in; never reset,
+   recreate or issue an initialization code for that account. An unresolved or ambiguous identity
+   fails closed. Include unverified accounts in collision resolution rather than creating a duplicate.
+3. Only for a genuinely new invitee, use the server's `user.write` authority to call
+   `POST /v2/users/new` with the exact invitation email, no password and
+   `human.email.returnCode: {}`. This suppresses a separate verification email and leaves the email
+   unverified. Never mark the email verified from an editable form field.
+4. Start the existing OIDC flow with the validated relative invitation path in sealed, short-lived
+   state. Preserve state, nonce, PKCE, CSRF and session checks. Get the native authorization request
+   ID from the provider redirect; do not invent it or replace the registered callback.
+5. For the new account without a primary authentication method, call
+   `POST /v2/users/{userId}/invite_code` with `returnCode: {}`, or use `sendCode.urlTemplate` to
+   send the code through the provider. The pinned stock LoginV2 route is
+   `/ui/v2/login/verify?userId=...&code=...&organization=...&invite=true&requestId=...`.
+   Supported template placeholders are `{{.UserID}}`, `{{.OrgID}}` and `{{.Code}}`; add the
+   current `requestId` to that template. Never log codes, bearer links or credentials.
+6. Let native LoginV2 verify the invite code, verify email and collect the first password or passkey.
+   Platform never collects the password. Native verification creates its fingerprint-bound setup
+   cookie and session, then carries `requestId` through `/authenticator/set`, credential setup and
+   the normal OIDC completion. Retain provider MFA, authentication and session requirements.
+7. Return through the normal verified callback to the same application invitation. Provider
+   initialization grants no application membership. Require a separate explicit acceptance POST,
+   rechecking invitation state and the current subject and verified email.
+8. For a wrong account, use existing provider logout and the registered signed-out callback with
+   sealed invitation continuation, then ordinary sign-in. Never reset credentials to switch accounts.
 
-## Platform continuation contract
+Coordinate setup by actual identity across invitations for organizations A and B. Resolve create
+conflicts to the same actual user and preserve each pending acceptance. A new provider invite code
+invalidates the previous one, so concurrent setup must coalesce or recover deliberately; identity
+reuse alone does not preserve both code links. Before issuing any initialization code, recheck primary
+methods. Never turn an existing credentialed account into a setup flow.
 
-1. Open the platform invitation URL and display the invitation status without accepting it.
-2. At deliberate sign-in or create-account action, use the existing OIDC authorization-code flow
-   and configured callback, with the FreightClaims owner organization scope
-   `urn:zitadel:iam:org:id:{ownerOrganizationId}`. `login_hint` may suggest the invited email;
-   it is not proof of the authenticated account. Native `prompt=create` requests the registration
-   screen; ordinary login also offers registration when allowed by the organization policy.
-3. Keep the validated relative invitation path in the existing sealed, short-lived OIDC transient
-   state. Reject external URLs, network-path references, backslashes and control characters.
-   Preserve existing state, nonce, PKCE, CSRF and session validation. Never log invitation bearers.
-   The organization `defaultRedirectUri` is for standalone provider flows and cannot preserve an
-   individual invitation; do not substitute it for OIDC continuation.
-4. After the normal callback, return to the invitation page. Require an explicit same-origin
-   acceptance POST and verify the current account's subject and verified email against the
-   invitation at that time. Registration and login must never accept automatically.
-5. For a wrong account, use the existing provider logout and registered signed-out callback,
-   retaining the same validated invitation path in sealed short-lived continuation state, then
-   begin normal login again. Never reset credentials or recreate the account to switch users.
+## Provider boundary
 
-Native provider registration alone does not enforce invitation expiry, email matching or membership
-rules. Deploying the hosted catalog applies a live identity policy and remains an operator approval
-boundary; source publication and isolated local validation do not activate that policy.
+This contract is verified against ZITADEL and stock LoginV2 `v4.16.2`. The native invitation
+verification action calls `VerifyInviteCode` independently of the separate `EMAIL_VERIFICATION`
+flag used for ordinary login email checks. Registration remains disabled in both FreightClaims
+catalogs. This repository does not implement the platform's invitation authorization boundary.
+Source publication does not apply shared provider settings; runtime activation requires its own
+operator decision.
 
-References: [ZITADEL onboarding](https://zitadel.com/docs/guides/integrate/onboarding/end-users),
-[organization scopes](https://zitadel.com/docs/apis/openidoauth/scopes).
+References: [CreateUser](https://zitadel.com/docs/reference/api/user/zitadel.user.v2.UserService.CreateUser),
+[CreateInviteCode](https://zitadel.com/docs/reference/api/user/zitadel.user.v2.UserService.CreateInviteCode),
+[VerifyInviteCode](https://zitadel.com/docs/reference/api/user/zitadel.user.v2.UserService.VerifyInviteCode),
+[pinned native verification](https://github.com/zitadel/zitadel/blob/v4.16.2/apps/login/src/lib/server/verify.ts),
+[pinned authenticator setup](https://github.com/zitadel/zitadel/blob/v4.16.2/apps/login/src/app/(login)/authenticator/set/page.tsx).

@@ -78,7 +78,7 @@ describe("product catalog", () => {
   it.each([
     "products.json",
     "products.local.json",
-  ])("enables native signup with the FreightClaims login policy in %s", (fileName) => {
+  ])("disables self-registration with the FreightClaims login policy in %s", (fileName) => {
     const catalog = catalogSchema.parse(
       JSON.parse(readFileSync(new URL(`../deploy/products/${fileName}`, import.meta.url), "utf8")),
     );
@@ -86,7 +86,7 @@ describe("product catalog", () => {
 
     expect(catalog.products.map((product) => product.id)).toEqual(["freightclaims"]);
     expect(freightclaims?.login_policy).toMatchObject({
-      allow_self_registration: true,
+      allow_self_registration: false,
       disable_login_with_email: false,
       disable_login_with_phone: false,
       ignore_unknown_usernames: true,
