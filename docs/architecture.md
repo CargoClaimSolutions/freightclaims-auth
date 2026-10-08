@@ -91,8 +91,8 @@ disabled so ZITADEL honors those per-application hosts; the Management Console i
 to the canonical host.
 
 Each product declares its native hosted-login policy independently. FreightClaims keeps the
-canonical application's username/password and password-recovery behavior, disables public
-self-registration and external identity providers, and applies the canonical FreightClaims logo,
+canonical application's username/password and password-recovery behavior, enables user-initiated
+self-registration, disables external identity providers, and applies the canonical FreightClaims logo,
 green palette, neutral background, and light theme through ZITADEL's organization branding and
 asset APIs. Applications never render or collect credentials themselves.
 

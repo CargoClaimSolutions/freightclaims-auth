@@ -78,14 +78,15 @@ describe("product catalog", () => {
   it.each([
     "products.json",
     "products.local.json",
-  ])("applies the mixed-case login workaround only to FreightClaims in %s", (fileName) => {
+  ])("enables native signup with the FreightClaims login policy in %s", (fileName) => {
     const catalog = catalogSchema.parse(
       JSON.parse(readFileSync(new URL(`../deploy/products/${fileName}`, import.meta.url), "utf8")),
     );
     const freightclaims = catalog.products.find((product) => product.id === "freightclaims");
 
+    expect(catalog.products.map((product) => product.id)).toEqual(["freightclaims"]);
     expect(freightclaims?.login_policy).toMatchObject({
-      allow_self_registration: false,
+      allow_self_registration: true,
       disable_login_with_email: false,
       disable_login_with_phone: false,
       ignore_unknown_usernames: true,

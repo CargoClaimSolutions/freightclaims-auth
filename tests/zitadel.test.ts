@@ -646,6 +646,27 @@ describe("ZitadelClient login policy default redirect", () => {
     });
   });
 
+  it("enables registration only on the requested organization and preserves security settings", async () => {
+    const request = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(Response.json({ policy: existingPolicy, isDefault: false }))
+      .mockResolvedValueOnce(Response.json({}));
+    const client = new ZitadelClient("https://auth.freightclaims.com", "bootstrap-pat");
+
+    await client.ensureLoginPolicy("freightclaims-org", {
+      ...desired,
+      allow_self_registration: true,
+    });
+
+    expect(request).toHaveBeenCalledTimes(2);
+    for (const [url, options] of request.mock.calls) {
+      expect(new URL(String(url)).pathname).toBe("/management/v1/policies/login");
+      expect(options?.headers).toMatchObject({ "x-zitadel-orgid": "freightclaims-org" });
+    }
+    expect(request.mock.calls[1]?.[1]?.method).toBe("PUT");
+    expect(requestBody(request, 1)).toEqual({ ...existingPolicy, allowRegister: true });
+  });
+
   it("keeps the organization's existing default redirect URI when none is declared", async () => {
     const request = vi
       .spyOn(globalThis, "fetch")
