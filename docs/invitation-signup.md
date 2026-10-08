@@ -20,7 +20,10 @@ including a GET or prefetch, must not create an identity or accept membership.
    unverified. Never mark the email verified from an editable form field.
 4. Start the existing OIDC flow with the validated relative invitation path in sealed, short-lived
    state. Preserve state, nonce, PKCE, CSRF and session checks. Get the native authorization request
-   ID from the provider redirect; do not invent it or replace the registered callback.
+   ID by following LoginV2's redirect: `authRequest=V2_...` becomes
+   `requestId=oidc_V2_...`. Passing the raw `authRequest` as `requestId` completes credential
+   setup but falls back to the default URL instead of the OIDC callback. Read the actual native
+   `requestId`; do not invent it or replace the registered callback.
 5. For the new account without a primary authentication method, call
    `POST /v2/users/{userId}/invite_code` with `returnCode: {}`, or use `sendCode.urlTemplate` to
    send the code through the provider. The pinned stock LoginV2 route is
