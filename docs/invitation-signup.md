@@ -8,6 +8,11 @@ The dedicated instance serves FreightClaims only; other product policies and the
 disabled registration default are unchanged. Bootstrap uses the organization management endpoint
 with `x-zitadel-orgid`, not the instance default policy endpoint.
 
+Both Compose definitions enable Login V2's native `EMAIL_VERIFICATION=true`. New accounts must
+verify their email through the provider's normal email-code flow before returning to the application;
+existing verified accounts keep their credentials and normal login. Login V2 caches organization
+settings, so an operator must account for cache refresh when activating catalog changes.
+
 An identity has no application tenant membership merely because it registered. The platform owns
 pending email invitations, expiry, resend, status and explicit membership acceptance. Sending or
 resending an invitation must not call ZITADEL human creation, credential reset or provider invitation
