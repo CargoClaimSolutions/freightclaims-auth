@@ -27,3 +27,8 @@ describe("local Compose profile", () => {
     expect(localCompose).toContain("LOCAL_AUTH_ISSUER: ${LOCAL_AUTH_ISSUER:");
   });
 });
+
+it("requires native email verification for initialized invite recipients", () => {
+  const loginService = localCompose.split("\n  zitadel-login:\n")[1]?.split("  bootstrap:")[0];
+  expect(loginService).toContain('EMAIL_VERIFICATION: "true"');
+});
