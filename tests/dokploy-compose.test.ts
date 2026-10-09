@@ -41,3 +41,10 @@ describe("Dokploy Compose ownership", () => {
     expect(productLoginProxy).not.toContain("return 308 /ui/v2/login/;");
   });
 });
+
+it("requires native email verification for initialized invite recipients", () => {
+  const loginService = hostedCompose
+    .split("\n  zitadel-login:\n")[1]
+    ?.split("  product-login-root:")[0];
+  expect(loginService).toContain('EMAIL_VERIFICATION: "true"');
+});
