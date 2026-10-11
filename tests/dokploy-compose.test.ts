@@ -48,10 +48,13 @@ describe("Dokploy Compose ownership", () => {
       "proxy_buffer_size 64k;",
       "proxy_buffers 8 64k;",
       "proxy_busy_buffers_size 128k;",
+      "proxy_http_version 1.0;",
     ]) {
       expect(serverDirectives).toContain(`\n  ${directive}\n`);
       expect(productLoginProxy.split(directive)).toHaveLength(2);
     }
+    // Over HTTP/1.1 the upstream answers chunked and nginx releases the redirect row early.
+    expect(productLoginProxy.match(/^\s*proxy_http_version\s/gm)).toHaveLength(1);
     expect(productLoginProxy).toContain("https://github.com/zitadel/zitadel/issues/12745");
     expect(productLoginProxy).toContain("https://github.com/vercel/next.js/issues/81377");
     expect(productLoginProxy).not.toMatch(/proxy_buffering\s+off|X-Accel-Buffering/i);

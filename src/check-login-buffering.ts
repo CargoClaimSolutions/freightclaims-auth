@@ -5,9 +5,10 @@ import { request } from "node:http";
 
 // Runs deploy/dokploy/product-login-root.nginx.conf in the hosted nginx image in front of a fake
 // Login V2 that streams a server-action response the way Next.js does: the redirect row first, then
-// the re-rendered page. The hosted config must hold the response until it is complete; the same
-// config without its proxy_buffer* directives must release the redirect row early, which shows the
-// check would catch a regression.
+// the re-rendered page. The hosted config must hold the response until it is complete. The same
+// config without its proxy_buffer* directives runs on nginx's default buffers (buffering on, 4k
+// pages), as the hosted config did before this fix. That baseline must release the redirect row
+// early, which shows the check would catch a regression.
 
 const burstDelayMilliseconds = 500;
 const lastBurstMilliseconds = 2 * burstDelayMilliseconds;
@@ -36,7 +37,7 @@ const hostedConfig = readFileSync(
   new URL("../deploy/dokploy/product-login-root.nginx.conf", import.meta.url),
   "utf8",
 );
-const unbufferedConfig = hostedConfig.replace(
+const defaultBuffersConfig = hostedConfig.replace(
   /^\s*proxy_(?:buffering|buffer_size|buffers|busy_buffers_size)\s[^;]*;\n/gm,
   "",
 );
@@ -160,14 +161,14 @@ function report(label: string, deliveries: Map<string, Delivery>): void {
 }
 
 async function main(): Promise<void> {
-  if (unbufferedConfig === hostedConfig) {
+  if (defaultBuffersConfig === hostedConfig) {
     throw new Error("product-login-root.nginx.conf sets no proxy_buffer* directives");
   }
   // On a user-defined network Docker's resolver at 127.0.0.11 answers for the aliases, as it does
   // in the hosted Compose project.
   const suffix = randomBytes(4).toString("hex");
   const network = `login-buffering-check-${suffix}`;
-  const containers = [`${network}-login`, `${network}-buffered`, `${network}-unbuffered`];
+  const containers = [`${network}-login`, `${network}-hosted`, `${network}-default-4k`];
   docker("network", "create", network);
   try {
     docker(
@@ -185,11 +186,11 @@ async function main(): Promise<void> {
       fakeLoginV2,
     );
     const failures: string[] = [];
-    const buffered = await measure(network, `${network}-buffered`, hostedConfig);
-    const unbuffered = await measure(network, `${network}-unbuffered`, unbufferedConfig);
-    report("hosted", buffered);
-    report("unbuffered", unbuffered);
-    for (const [path, delivery] of buffered) {
+    const hosted = await measure(network, `${network}-hosted`, hostedConfig);
+    const defaultBuffers = await measure(network, `${network}-default-4k`, defaultBuffersConfig);
+    report("hosted", hosted);
+    report("default-4k", defaultBuffers);
+    for (const [path, delivery] of hosted) {
       if (!(delivery.redirectMilliseconds >= lastBurstMilliseconds - 100)) {
         failures.push(
           `hosted config released the redirect row of ${path} before the response ended`,
@@ -199,9 +200,9 @@ async function main(): Promise<void> {
         failures.push(`hosted config delivered ${path} in more than one piece`);
       }
     }
-    for (const [path, delivery] of unbuffered) {
+    for (const [path, delivery] of defaultBuffers) {
       if (!(delivery.redirectMilliseconds < lastBurstMilliseconds - 100)) {
-        failures.push(`the check cannot tell: unbuffered nginx also held ${path} until it ended`);
+        failures.push(`the check cannot tell: default 4k buffers also held ${path} until it ended`);
       }
     }
     if (failures.length > 0) throw new Error(failures.join("\n"));
