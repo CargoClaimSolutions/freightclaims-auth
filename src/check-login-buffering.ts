@@ -54,8 +54,13 @@ interface Delivery {
   readonly bodyBytes: number;
 }
 
+// Each docker command runs in its own process group (spawnSync honours `detached`), so Ctrl-C reaches
+// only this script. An interrupted `docker run` could otherwise still create its container after the
+// cleanup below has run. The signal handler runs once the synchronous command has returned.
+const dockerOptions = { encoding: "utf8", detached: true } as const;
+
 function docker(...arguments_: string[]): string {
-  return execFileSync("docker", arguments_, { encoding: "utf8" }).trim();
+  return execFileSync("docker", arguments_, dockerOptions).trim();
 }
 
 function send(port: number, method: string, path: string): Promise<Delivery> {
@@ -169,6 +174,19 @@ async function main(): Promise<void> {
   const suffix = randomBytes(4).toString("hex");
   const network = `login-buffering-check-${suffix}`;
   const containers = [`${network}-login`, `${network}-hosted`, `${network}-default-4k`];
+  const signals = ["SIGINT", "SIGTERM", "SIGHUP"] as const;
+  const cleanUp = () => {
+    spawnSync("docker", ["rm", "--force", ...containers], { ...dockerOptions, stdio: "ignore" });
+    spawnSync("docker", ["network", "rm", network], { ...dockerOptions, stdio: "ignore" });
+    for (const signal of signals) process.off(signal, onSignal);
+  };
+  // Node exits on these signals without running `finally`, which would leave the fake Login V2
+  // running. Clean up, then exit by the same signal.
+  const onSignal = (signal: NodeJS.Signals) => {
+    cleanUp();
+    process.kill(process.pid, signal);
+  };
+  for (const signal of signals) process.on(signal, onSignal);
   docker("network", "create", network);
   try {
     docker(
@@ -208,8 +226,7 @@ async function main(): Promise<void> {
     if (failures.length > 0) throw new Error(failures.join("\n"));
     console.log("Login V2 action responses reach the client in one piece.");
   } finally {
-    spawnSync("docker", ["rm", "--force", ...containers], { stdio: "ignore" });
-    spawnSync("docker", ["network", "rm", network], { stdio: "ignore" });
+    cleanUp();
   }
 }
 
