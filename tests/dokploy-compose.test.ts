@@ -53,8 +53,17 @@ describe("Dokploy Compose ownership", () => {
       expect(serverDirectives).toContain(`\n  ${directive}\n`);
       expect(productLoginProxy.split(directive)).toHaveLength(2);
     }
-    // Over HTTP/1.1 the upstream answers chunked and nginx releases the redirect row early.
-    expect(productLoginProxy.match(/^\s*proxy_http_version\s/gm)).toHaveLength(1);
+    // A location-level override (smaller buffers, or HTTP/1.1, which makes the upstream answer
+    // chunked) would release the redirect row early, so each directive appears only at server level.
+    for (const name of [
+      "proxy_buffering",
+      "proxy_buffer_size",
+      "proxy_buffers",
+      "proxy_busy_buffers_size",
+      "proxy_http_version",
+    ]) {
+      expect(productLoginProxy.match(new RegExp(`^\\s*${name}\\s`, "gm"))).toHaveLength(1);
+    }
     expect(productLoginProxy).toContain("https://github.com/zitadel/zitadel/issues/12745");
     expect(productLoginProxy).toContain("https://github.com/vercel/next.js/issues/81377");
     expect(productLoginProxy).not.toMatch(/proxy_buffering\s+off|X-Accel-Buffering/i);
