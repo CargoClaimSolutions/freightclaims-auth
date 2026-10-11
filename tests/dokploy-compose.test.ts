@@ -45,14 +45,15 @@ describe("Dokploy Compose ownership", () => {
     // A location-level override (smaller buffers, or HTTP/1.1, which makes the upstream answer
     // chunked) would release the redirect row early, and so would a second server block, which runs
     // on nginx's defaults for its hosts. So the file has one server block and each directive appears
-    // once, at its top level.
+    // once, at its top level. An included file could do either out of this test's sight, so the
+    // file includes nothing, and Compose gives nginx no other config file.
     expect(loginBufferingDirectives(productLoginProxy)).toEqual(serverLoginBufferingDirectives);
     expect(productLoginProxy).toContain("https://github.com/zitadel/zitadel/issues/12745");
     expect(productLoginProxy).toContain("https://github.com/vercel/next.js/issues/81377");
     expect(productLoginProxy).not.toMatch(/proxy_buffering\s+off|X-Accel-Buffering/i);
   });
 
-  it("finds a buffering override or a second server block wherever it sits on a line", () => {
+  it("finds a buffering override, a second server block or an include wherever it sits on a line", () => {
     for (const [anchor, override] of [
       [
         "server {\n",
@@ -70,6 +71,11 @@ describe("Dokploy Compose ownership", () => {
       ["  location / {\n", '  location /ui/v2/login/otp { "proxy_buffering" off; }\n'],
       ["  location / {\n", `  location /ui/v2/login/x\\\${ proxy_buffer_size 4k; }\n`],
       ["  location / {\n", "  location /ui/v2/login/a}b { proxy_buffer_size 4k; }\n"],
+      ["server {\n", "include /etc/nginx/snippets/*.conf;\n"],
+      [
+        "    proxy_set_header Host $host;\n",
+        "    proxy_set_header Host $host; include /etc/nginx/snippets/proxy.conf;\n",
+      ],
     ] as const) {
       expect(productLoginProxy).toContain(anchor);
       const overridden = productLoginProxy.replace(anchor, `${override}${anchor}`);
@@ -83,6 +89,20 @@ describe("Dokploy Compose ownership", () => {
         ),
       ),
     ).toEqual(serverLoginBufferingDirectives);
+  });
+
+  it("gives nginx no config file but product-login-root.nginx.conf", () => {
+    // nginx.conf in the image includes /etc/nginx/conf.d/*.conf, and the image's only file there is
+    // the default.conf that this mount replaces.
+    const loginRootService = hostedCompose
+      .split("\n  product-login-root:\n")[1]
+      ?.split(/\n {2}\S/)[0];
+    expect(loginRootService).toContain(
+      "    volumes:\n      - ./product-login-root.nginx.conf:/etc/nginx/conf.d/default.conf:ro\n    networks:",
+    );
+    expect(loginRootService?.match(/\/etc\/nginx|configs:|command:|entrypoint:/g)).toEqual([
+      "/etc/nginx",
+    ]);
   });
 
   it("reads the config the way nginx does", () => {
@@ -125,14 +145,15 @@ const serverLoginBufferingDirectives = [
   "server: proxy_http_version 1.0",
 ];
 
-// Lists each top-level server block and each buffering directive with its enclosing blocks. nginx
-// includes conf.d files inside its http block.
+// Lists each top-level server block, each include and each buffering directive with its enclosing
+// blocks. nginx includes conf.d files inside its http block.
 function loginBufferingDirectives(config: string): string[] {
   return parseNginxStatements(config)
     .filter(
       ({ name, blocks }) =>
         (name === "server" && blocks.length === 0) ||
         [
+          "include",
           "proxy_buffering",
           "proxy_buffer_size",
           "proxy_buffers",
