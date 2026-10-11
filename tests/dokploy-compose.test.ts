@@ -43,15 +43,21 @@ describe("Dokploy Compose ownership", () => {
 
   it("delivers each Login V2 response in one piece for every location", () => {
     // A location-level override (smaller buffers, or HTTP/1.1, which makes the upstream answer
-    // chunked) would release the redirect row early, so each directive appears once, at server level.
+    // chunked) would release the redirect row early, and so would a second server block, which runs
+    // on nginx's defaults for its hosts. So the file has one server block and each directive appears
+    // once, at its top level.
     expect(loginBufferingDirectives(productLoginProxy)).toEqual(serverLoginBufferingDirectives);
     expect(productLoginProxy).toContain("https://github.com/zitadel/zitadel/issues/12745");
     expect(productLoginProxy).toContain("https://github.com/vercel/next.js/issues/81377");
     expect(productLoginProxy).not.toMatch(/proxy_buffering\s+off|X-Accel-Buffering/i);
   });
 
-  it("finds a buffering override wherever it sits on a line", () => {
+  it("finds a buffering override or a second server block wherever it sits on a line", () => {
     for (const [anchor, override] of [
+      [
+        "server {\n",
+        "server { listen 8080; server_name auth.freightclaims.com; location /ui/v2/login { proxy_pass http://$zitadel_login_upstream; } }\n",
+      ],
       [
         "  location / {\n",
         "  location /ui/v2/login/otp { proxy_http_version 1.1; proxy_pass http://$zitadel_login_upstream; }\n",
@@ -111,6 +117,7 @@ describe("Dokploy Compose ownership", () => {
 });
 
 const serverLoginBufferingDirectives = [
+  "http: server",
   "server: proxy_buffering on",
   "server: proxy_buffer_size 64k",
   "server: proxy_buffers 8 64k",
@@ -118,18 +125,24 @@ const serverLoginBufferingDirectives = [
   "server: proxy_http_version 1.0",
 ];
 
+// Lists each top-level server block and each buffering directive with its enclosing blocks. nginx
+// includes conf.d files inside its http block.
 function loginBufferingDirectives(config: string): string[] {
   return parseNginxStatements(config)
-    .filter(({ name }) =>
-      [
-        "proxy_buffering",
-        "proxy_buffer_size",
-        "proxy_buffers",
-        "proxy_busy_buffers_size",
-        "proxy_http_version",
-      ].includes(name),
+    .filter(
+      ({ name, blocks }) =>
+        (name === "server" && blocks.length === 0) ||
+        [
+          "proxy_buffering",
+          "proxy_buffer_size",
+          "proxy_buffers",
+          "proxy_busy_buffers_size",
+          "proxy_http_version",
+        ].includes(name),
     )
-    .map(({ name, args, blocks }) => `${blocks.join(" > ")}: ${[name, ...args].join(" ")}`);
+    .map(
+      ({ name, args, blocks }) => `${blocks.join(" > ") || "http"}: ${[name, ...args].join(" ")}`,
+    );
 }
 
 // Reads statements the way nginx's ngx_conf_read_token does, and throws where it would. Space, tab,
