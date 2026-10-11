@@ -40,6 +40,22 @@ describe("Dokploy Compose ownership", () => {
     expect(productLoginProxy).toContain("location /ui/v2/login {");
     expect(productLoginProxy).not.toContain("return 308 /ui/v2/login/;");
   });
+
+  it("delivers each Login V2 response in one piece for every location", () => {
+    const serverDirectives = productLoginProxy.split("\nserver {\n")[1]?.split("\n  location ")[0];
+    for (const directive of [
+      "proxy_buffering on;",
+      "proxy_buffer_size 64k;",
+      "proxy_buffers 8 64k;",
+      "proxy_busy_buffers_size 128k;",
+    ]) {
+      expect(serverDirectives).toContain(`\n  ${directive}\n`);
+      expect(productLoginProxy.split(directive)).toHaveLength(2);
+    }
+    expect(productLoginProxy).toContain("https://github.com/zitadel/zitadel/issues/12745");
+    expect(productLoginProxy).toContain("https://github.com/vercel/next.js/issues/81377");
+    expect(productLoginProxy).not.toMatch(/proxy_buffering\s+off|X-Accel-Buffering/i);
+  });
 });
 
 it("requires native email verification for initialized invite recipients", () => {

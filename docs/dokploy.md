@@ -48,6 +48,14 @@ and returns 404 for every other path it receives. The native `/admin/v1` passthr
 more specific than the `/admin` Console shortcut; otherwise the shortcut's path rewrite breaks
 ZITADEL's Admin API. A Compose redeploy is required after changing any of these domain records.
 
+`product-login-root` also buffers each Login V2 response so the browser receives it in one piece.
+A password or login-name server action streams an external redirect before the re-rendered page.
+Firefox and Safari cancel that stream when the redirect starts, so without buffering they briefly
+show "This page couldn't load" after a successful sign-in. The configuration comment links the
+upstream issues. `pnpm check:login-buffering` runs the configuration in the hosted nginx image
+against a fake streaming Login V2 and fails if the redirect row reaches the client before the
+response ends. It needs Docker and the `nginx` and `node:24-alpine` images.
+
 - `https://auth.freightclaims.com/ui/console` is the ZITADEL Console.
 - `https://auth.freightclaims.com/admin` is rewritten internally to the Console.
 - The issuer and Login V2 share one origin. Each OIDC application receives its Login V2 base URI

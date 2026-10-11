@@ -16,7 +16,8 @@
     "typecheck": "tsc --noEmit",
     "lint": "biome check .",
     "format": "biome check --write .",
-    "validate:compose": "node --import tsx src/local-dev.ts config && BWS_ACCESS_TOKEN=compose-validation BWS_PROJECT_ID=00000000-0000-0000-0000-000000000000 docker compose -f deploy/dokploy/compose.yml config --quiet"
+    "validate:compose": "node --import tsx src/local-dev.ts config && BWS_ACCESS_TOKEN=compose-validation BWS_PROJECT_ID=00000000-0000-0000-0000-000000000000 docker compose -f deploy/dokploy/compose.yml config --quiet",
+    "check:login-buffering": "node --import tsx src/check-login-buffering.ts"
   },
   "devDependencies": {
     "@biomejs/biome": "2.4.15",
