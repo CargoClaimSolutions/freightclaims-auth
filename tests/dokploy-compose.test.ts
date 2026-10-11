@@ -62,6 +62,8 @@ describe("Dokploy Compose ownership", () => {
       ],
       ["  location / {\n", "  location /ui/v2/login/otp {proxy_buffers 8 4k;}\n"],
       ["  location / {\n", '  location /ui/v2/login/otp { "proxy_buffering" off; }\n'],
+      ["  location / {\n", `  location /ui/v2/login/x\\\${ proxy_buffer_size 4k; }\n`],
+      ["  location / {\n", "  location /ui/v2/login/a}b { proxy_buffer_size 4k; }\n"],
     ] as const) {
       expect(productLoginProxy).toContain(anchor);
       const overridden = productLoginProxy.replace(anchor, `${override}${anchor}`);
@@ -75,6 +77,36 @@ describe("Dokploy Compose ownership", () => {
         ),
       ),
     ).toEqual(serverLoginBufferingDirectives);
+  });
+
+  it("reads the config the way nginx does", () => {
+    // Inside a server block, nginx 1.29.5 answers ?c=d with "a}b|<host>}|f#g|"}|o\ff" from the `if`.
+    expect(
+      parseNginxStatements(
+        `set $a a}b; set $b \${host}}; location /x\\\${ "proxy_buffering" off; } ` +
+          'if ($arg_c = "d") { set $e f#g; return 200 "$a|$b|$e|\\"}|o\\ff"; }',
+      ),
+    ).toEqual([
+      { name: "set", args: ["$a", "a}b"], blocks: [] },
+      { name: "set", args: ["$b", `\${host}}`], blocks: [] },
+      { name: "location", args: ["/x\\$"], blocks: [] },
+      { name: "proxy_buffering", args: ["off"], blocks: ["location /x\\$"] },
+      { name: "if", args: ["($arg_c", "=", "d", ")"], blocks: [] },
+      { name: "set", args: ["$e", "f#g"], blocks: ["if ($arg_c = d )"] },
+      { name: "return", args: ["200", '$a|$b|$e|"}|o\\ff'], blocks: ["if ($arg_c = d )"] },
+    ]);
+    // nginx -t -c rejects each of these as a whole file.
+    for (const rejected of [
+      '"worker_processes"1;',
+      'events { worker_connections "8"}',
+      "worker_processes 1}",
+      "worker_processes 1;}",
+      ";",
+      "events {",
+      'events { } "',
+    ]) {
+      expect(() => parseNginxStatements(rejected)).toThrow();
+    }
   });
 });
 
@@ -100,9 +132,12 @@ function loginBufferingDirectives(config: string): string[] {
     .map(({ name, args, blocks }) => `${blocks.join(" > ")}: ${[name, ...args].join(" ")}`);
 }
 
-// Reads statements the way nginx does: `#` starts a comment at the start of a word, a quote at the
-// start of a word runs to the matching quote, and `;`, `{` and `}` end a statement wherever they
-// sit on a line (except `${...}` inside a word). `blocks` lists the enclosing blocks, outermost first.
+// Reads statements the way nginx's ngx_conf_read_token does, and throws where it would. Space, tab,
+// CR and LF separate words. At the start of a word, `#` starts a comment, a quote runs to the
+// matching quote (which must be followed by a separator, `;`, `{` or `)`), and `;`, `{` and `}` end
+// a statement or block. Inside a word, `;` and `{` end the statement but `}` is literal, and so is a
+// `{` straight after an unescaped `$`. A backslash escapes the next character; only `\"`, `\'`,
+// `\\`, `\t`, `\r` and `\n` are unescaped. `blocks` lists the enclosing blocks, outermost first.
 function parseNginxStatements(
   config: string,
 ): { name: string; args: string[]; blocks: string[] }[] {
@@ -111,59 +146,92 @@ function parseNginxStatements(
   let words: string[] = [];
   let word: string | undefined;
   let quote: string | undefined;
-  let variableBrace = false;
+  let comment = false;
+  let escaped = false;
+  let variable = false;
+  let needSpace = false;
+  const unescaped: Record<string, string> = { t: "\t", r: "\r", n: "\n" };
+  const isSpace = (ch: string) => ch === " " || ch === "\t" || ch === "\r" || ch === "\n";
   const endWord = () => {
-    if (word !== undefined) words.push(word);
+    if (word !== undefined) {
+      words.push(word.replace(/\\(["'\\tnr])/g, (_, ch: string) => unescaped[ch] ?? ch));
+    }
     word = undefined;
-    variableBrace = false;
   };
-  const endStatement = () => {
+  const endStatement = (end: string) => {
     endWord();
     const [name, ...args] = words;
-    if (name === undefined) throw new Error("nginx config has an empty statement");
+    if (name === undefined) throw new Error(`nginx config has an unexpected ${end}`);
     statements.push({ name, args, blocks: [...blocks] });
+    if (end === "{") blocks.push([name, ...args].join(" "));
     words = [];
-    return [name, ...args].join(" ");
   };
-  for (let i = 0; i < config.length; i++) {
-    const ch = config[i] as string;
-    if (ch === "\\") {
-      word = `${word ?? ""}${ch}${config[++i] ?? ""}`;
-    } else if (quote !== undefined) {
-      if (ch === quote) {
-        quote = undefined;
-        endWord();
-      } else {
-        word += ch;
+  for (const ch of config) {
+    if (comment) {
+      comment = ch !== "\n";
+      continue;
+    }
+    if (escaped) {
+      word += ch;
+      escaped = false;
+      continue;
+    }
+    if (needSpace) {
+      needSpace = false;
+      if (isSpace(ch)) continue;
+      if (ch === ";" || ch === "{") {
+        endStatement(ch);
+        continue;
       }
-    } else if (word === undefined && (ch === '"' || ch === "'")) {
-      quote = ch;
+      if (ch !== ")") throw new Error(`nginx config has an unexpected ${ch} after a quoted string`);
+    }
+    if (word === undefined) {
+      if (isSpace(ch)) continue;
+      if (ch === ";" || ch === "{") {
+        endStatement(ch);
+        continue;
+      }
+      if (ch === "}") {
+        if (words.length > 0 || blocks.pop() === undefined) {
+          throw new Error("nginx config has an unexpected }");
+        }
+        continue;
+      }
+      if (ch === "#") {
+        comment = true;
+        continue;
+      }
       word = "";
-    } else if (word === undefined && ch === "#") {
-      while (i + 1 < config.length && config[i + 1] !== "\n") i++;
-    } else if (ch === "{" && word?.endsWith("$")) {
-      word += ch;
-      variableBrace = true;
-    } else if (ch === "}" && variableBrace) {
-      word += ch;
-      variableBrace = false;
-    } else if (ch === ";") {
-      endStatement();
-    } else if (ch === "{") {
-      blocks.push(endStatement());
-    } else if (ch === "}") {
-      endWord();
-      if (words.length > 0 || blocks.pop() === undefined) {
-        throw new Error("nginx config has an unexpected }");
+      if (ch === '"' || ch === "'") {
+        quote = ch;
+        continue;
       }
-    } else if (/\s/.test(ch)) {
+    }
+    if (ch === "{" && variable) {
+      word += ch;
+      continue;
+    }
+    variable = ch === "$";
+    escaped = ch === "\\";
+    if (ch === quote) {
+      quote = undefined;
       endWord();
+      needSpace = true;
+    } else if (quote === undefined && isSpace(ch)) {
+      endWord();
+    } else if (quote === undefined && (ch === ";" || ch === "{")) {
+      endStatement(ch);
     } else {
-      word = `${word ?? ""}${ch}`;
+      word += ch;
     }
   }
-  endWord();
-  if (quote !== undefined || words.length > 0 || blocks.length > 0) {
+  if (
+    escaped ||
+    quote !== undefined ||
+    word !== undefined ||
+    words.length > 0 ||
+    blocks.length > 0
+  ) {
     throw new Error("nginx config ends inside a statement, block or quoted string");
   }
   return statements;
