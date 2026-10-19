@@ -51,13 +51,13 @@ ZITADEL's Admin API. A Compose redeploy is required after changing any of these 
 
 The bare host is the exception. The `/` domain would send `https://auth.freightclaims.com/` to
 zitadel-api, which redirects to the ZITADEL Console. Customers must not land there. So
-`product-login-root` carries a router named `freightclaims-auth-root` whose rule is
+`zitadel-api` also carries a router named `freightclaims-auth-root` whose rule is
 `Host(auth.freightclaims.com) && Path(/)`, exactly `/` and nothing below it. It answers with a 302 to
 `https://app.freightclaims.com/` through Traefik's `noop@internal` service, so no container serves
 the request. Its rule is longer than the `/` domain's `Host(...)` rule, so Traefik's default
 priority ranks it first. Every other path keeps its domain. Traefik only routes to healthy
-containers, so while `product-login-root` restarts, `/` falls back to the Console redirect, the
-same way Login V2 is unavailable during that window.
+containers, and the router sits on the same container as the `/` domain, so the redirect is there
+whenever the Console redirect would be, including while Login V2 is down or restarting.
 
 - `https://auth.freightclaims.com/ui/console` is the ZITADEL Console.
 - `https://auth.freightclaims.com/admin` is rewritten internally to the Console.
