@@ -104,6 +104,17 @@ services:
   product-login-root:
     image: nginx:1.29.5-alpine
     restart: unless-stopped
+    # The Dokploy "/" domain sends the bare host to zitadel-api, which redirects to the ZITADEL
+    # Console. Send exactly "/" to the FreightClaims app instead; every other path keeps its domain.
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.freightclaims-auth-root.rule=Host(`auth.freightclaims.com`) && Path(`/`)
+      - traefik.http.routers.freightclaims-auth-root.entrypoints=websecure
+      - traefik.http.routers.freightclaims-auth-root.tls=true
+      - traefik.http.routers.freightclaims-auth-root.middlewares=freightclaims-auth-root
+      - traefik.http.routers.freightclaims-auth-root.service=noop@internal
+      - traefik.http.middlewares.freightclaims-auth-root.redirectregex.regex=^.*
+      - traefik.http.middlewares.freightclaims-auth-root.redirectregex.replacement=https://app.freightclaims.com/
     volumes:
       - ./product-login-root.nginx.conf:/etc/nginx/conf.d/default.conf:ro
     networks:

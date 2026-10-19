@@ -12,9 +12,29 @@ const productLoginProxy = readFileSync(
 
 describe("Dokploy Compose ownership", () => {
   it("leaves public domains and Traefik networking to Dokploy", () => {
-    expect(hostedCompose).not.toContain("traefik.");
+    const traefikLabels = hostedCompose
+      .split("\n")
+      .filter((line) => line.includes("traefik."))
+      .map((line) => line.trim());
+    for (const label of traefikLabels) {
+      expect(label).toMatch(
+        /^- traefik\.(enable=true|http\.(routers|middlewares)\.freightclaims-auth-root\.)/,
+      );
+    }
     expect(hostedCompose).not.toContain("dokploy-network");
     expect(hostedCompose).toContain("product-login-root:");
+  });
+
+  it("redirects only the bare auth host to the FreightClaims app", () => {
+    expect(hostedCompose).toContain(
+      "traefik.http.routers.freightclaims-auth-root.rule=Host(`auth.freightclaims.com`) && Path(`/`)",
+    );
+    expect(hostedCompose).toContain(
+      "traefik.http.routers.freightclaims-auth-root.service=noop@internal",
+    );
+    expect(hostedCompose).toContain(
+      "traefik.http.middlewares.freightclaims-auth-root.redirectregex.replacement=https://app.freightclaims.com/",
+    );
   });
 
   it("serves product branding assets from the canonical ZITADEL instance", () => {
