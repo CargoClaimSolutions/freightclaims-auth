@@ -28,9 +28,8 @@ deployments; they are not injected into the ZITADEL runtime.
 ## Routing
 
 Dokploy Traefik terminates TLS. Public routing is owned by the Compose application's **Domains**
-tab; `deploy/dokploy/compose.yml` declares no `dokploy-network` and only one Traefik router of its
-own (below). Dokploy injects the network and the domain labels when it deploys the registered
-domains.
+tab; `deploy/dokploy/compose.yml` intentionally contains no Traefik labels or manually declared
+`dokploy-network`. Dokploy injects both when it deploys the registered domains.
 
 Configure these HTTPS domains with a Let's Encrypt certificate:
 
@@ -48,16 +47,6 @@ identities that do not have an authentication method), redirects the exact `/` p
 and returns 404 for every other path it receives. The native `/admin/v1` passthrough must remain
 more specific than the `/admin` Console shortcut; otherwise the shortcut's path rewrite breaks
 ZITADEL's Admin API. A Compose redeploy is required after changing any of these domain records.
-
-The bare host is the exception. The `/` domain would send `https://auth.freightclaims.com/` to
-zitadel-api, which redirects to the ZITADEL Console. Customers must not land there. So
-`zitadel-api` also carries a router named `freightclaims-auth-root` whose rule is
-`Host(auth.freightclaims.com) && Path(/)`, exactly `/` and nothing below it. It answers with a 302 to
-`https://app.freightclaims.com/` through Traefik's `noop@internal` service, so no container serves
-the request. Its rule is longer than the `/` domain's `Host(...)` rule, so Traefik's default
-priority ranks it first. Every other path keeps its domain. Traefik only routes to healthy
-containers, and the router sits on the same container as the `/` domain, so the redirect is there
-whenever the Console redirect would be, including while Login V2 is down or restarting.
 
 - `https://auth.freightclaims.com/ui/console` is the ZITADEL Console.
 - `https://auth.freightclaims.com/admin` is rewritten internally to the Console.

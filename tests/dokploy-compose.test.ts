@@ -12,41 +12,9 @@ const productLoginProxy = readFileSync(
 
 describe("Dokploy Compose ownership", () => {
   it("leaves public domains and Traefik networking to Dokploy", () => {
+    expect(hostedCompose).not.toContain("traefik.");
     expect(hostedCompose).not.toContain("dokploy-network");
     expect(hostedCompose).toContain("product-login-root:");
-  });
-
-  it("redirects only the bare auth host to the FreightClaims app", () => {
-    // Pinned whole, on the service that also gets the Dokploy "/" domain: dropping or adding a
-    // label (a priority, say), or editing one, can send "/" back to the Console.
-    const servicesWithTraefikLabels = hostedCompose
-      .split(/\n {2}(?=[a-z-]+:\n)/)
-      .map(
-        (service) =>
-          [
-            service.split(":\n")[0],
-            service
-              .split("\n")
-              .filter((line) => line.includes("traefik."))
-              .map((line) => line.trim()),
-          ] as const,
-      )
-      .filter(([, labels]) => labels.length > 0);
-    expect(servicesWithTraefikLabels).toEqual([
-      [
-        "zitadel-api",
-        [
-          "- traefik.enable=true",
-          "- traefik.http.routers.freightclaims-auth-root.rule=Host(`auth.freightclaims.com`) && Path(`/`)",
-          "- traefik.http.routers.freightclaims-auth-root.entrypoints=websecure",
-          "- traefik.http.routers.freightclaims-auth-root.tls=true",
-          "- traefik.http.routers.freightclaims-auth-root.middlewares=freightclaims-auth-root",
-          "- traefik.http.routers.freightclaims-auth-root.service=noop@internal",
-          "- traefik.http.middlewares.freightclaims-auth-root.redirectregex.regex=^.*",
-          "- traefik.http.middlewares.freightclaims-auth-root.redirectregex.replacement=https://app.freightclaims.com/",
-        ],
-      ],
-    ]);
   });
 
   it("serves product branding assets from the canonical ZITADEL instance", () => {
