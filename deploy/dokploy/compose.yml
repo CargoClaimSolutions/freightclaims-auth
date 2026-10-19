@@ -36,6 +36,9 @@ services:
       ZITADEL_EXTERNALSECURE: "true"
       ZITADEL_TLS_ENABLED: "false"
       ZITADEL_SYSTEMDEFAULTS_PASSWORDHASHER_VERIFIERS: argon2
+      # Authenticator apps and passkey prompts show these names; ZITADEL defaults both to "ZITADEL".
+      ZITADEL_SYSTEMDEFAULTS_MULTIFACTORS_OTP_ISSUER: FreightClaims
+      ZITADEL_WEBAUTHNNAME: FreightClaims
       ZITADEL_FIRSTINSTANCE_INSTANCENAME: FreightClaims
       ZITADEL_FIRSTINSTANCE_ORG_NAME: FreightClaims
       ZITADEL_FIRSTINSTANCE_ORG_HUMAN_USERNAME: zitadel-admin
@@ -73,6 +76,8 @@ services:
     user: "0"
     environment:
       EMAIL_VERIFICATION: "true"
+      # The invitation mail Login V2 sends names this application; the default is "Zitadel Login".
+      NEXT_PUBLIC_APPLICATION_NAME: FreightClaims
       ZITADEL_API_URL: http://zitadel-api:8080
       NEXT_PUBLIC_BASE_PATH: /ui/v2/login
       ZITADEL_SERVICE_USER_TOKEN_FILE: /zitadel/bootstrap/login-client.pat
