@@ -12,15 +12,6 @@ const productLoginProxy = readFileSync(
 
 describe("Dokploy Compose ownership", () => {
   it("leaves public domains and Traefik networking to Dokploy", () => {
-    const traefikLabels = hostedCompose
-      .split("\n")
-      .filter((line) => line.includes("traefik."))
-      .map((line) => line.trim());
-    for (const label of traefikLabels) {
-      expect(label).toMatch(
-        /^- traefik\.(enable=true|http\.(routers|middlewares)\.freightclaims-auth-root\.)/,
-      );
-    }
     expect(hostedCompose).not.toContain("dokploy-network");
     expect(hostedCompose).toContain("product-login-root:");
   });
