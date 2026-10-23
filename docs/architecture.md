@@ -112,6 +112,11 @@ ZITADEL leaves them on its Console. The catalog's `login_policy.default_redirect
 must sit under one of the product's applications. An organization has one value, so a product with
 a staging and a production application picks one.
 
+The bootstrap does not allow passkeys on the organization's login policy. Login V2's passkey screen
+offers no password and no reset, so a person whose only method was a passkey their browser could
+not use had no way back in. Without passkeys, invitation setup offers only a password, and an
+account that still has only a passkey is sent to the password screen, where its reset works.
+
 ## Runtime and secrets
 
 The hosted stack contains ZITADEL, Login V2, a one-shot Bitwarden secret loader, and a one-shot
