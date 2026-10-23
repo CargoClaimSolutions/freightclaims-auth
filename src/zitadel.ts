@@ -361,6 +361,25 @@ export class ZitadelClient {
     });
   }
 
+  // ZITADEL's "password changed" mail links only to its Console (`/ui/console?login_hint=`; no
+  // setting or message text changes the link), and it also goes out the moment an invitee sets
+  // their first password, which pulled invitees away from accepting (freightclaims-platform#2492).
+  async disablePasswordChangeNotification(organizationId: string): Promise<void> {
+    const headers = { "x-zitadel-orgid": organizationId };
+    const { policy } = await this.#request<{
+      policy?: { isDefault?: boolean; passwordChange?: boolean };
+    }>("/management/v1/policies/notification", { method: "GET", headers });
+    if (!policy) throw new Error(`ZITADEL returned no notification policy for ${organizationId}`);
+    const customPolicy = policy.isDefault !== true;
+    if (customPolicy && policy.passwordChange !== true) return;
+    await this.#request("/management/v1/policies/notification", {
+      method: customPolicy ? "PUT" : "POST",
+      body: { passwordChange: false },
+      headers,
+      allowNoChanges: true,
+    });
+  }
+
   async listProjects(): Promise<Project[]> {
     const response = await this.#request<{ projects?: Project[] }>(
       "/zitadel.project.v2.ProjectService/ListProjects",

@@ -163,6 +163,7 @@ export async function bootstrapCatalog(
       await readBrandingLogo(product.branding.logo_base64_file),
     );
     await client.ensureLoginPolicy(ownerOrganization.id, product.login_policy);
+    await client.disablePasswordChangeNotification(ownerOrganization.id);
 
     let projectId = projects.find(
       (project) =>

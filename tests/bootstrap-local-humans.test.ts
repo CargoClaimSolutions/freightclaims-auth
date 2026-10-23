@@ -199,6 +199,7 @@ describe("local bootstrap profile", () => {
       }),
       createServiceAccount: vi.fn().mockResolvedValue(undefined),
       deleteAdministrator,
+      disablePasswordChangeNotification: vi.fn().mockResolvedValue(undefined),
       disableInstanceLoginV2Override: vi.fn().mockResolvedValue(undefined),
       ensureAdministrator,
       ensureLoginPolicy: vi.fn().mockResolvedValue(undefined),
