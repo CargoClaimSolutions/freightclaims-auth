@@ -681,6 +681,41 @@ describe("ZitadelClient login policy default redirect", () => {
   });
 });
 
+describe("ZitadelClient password change notification", () => {
+  it.each([
+    { policy: { isDefault: true, passwordChange: true }, method: "POST" },
+    { policy: { passwordChange: true }, method: "PUT" },
+  ])("turns off a $method policy that sends it", async ({ policy, method }) => {
+    const request = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(Response.json({ policy }))
+      .mockResolvedValueOnce(Response.json({}));
+    const client = new ZitadelClient("https://auth.freightclaims.com", "bootstrap-pat");
+
+    await client.disablePasswordChangeNotification("freightclaims-org");
+
+    expect(new URL(String(request.mock.calls[1]?.[0])).pathname).toBe(
+      "/management/v1/policies/notification",
+    );
+    expect(request.mock.calls[1]?.[1]?.method).toBe(method);
+    expect(request.mock.calls[1]?.[1]?.headers).toMatchObject({
+      "x-zitadel-orgid": "freightclaims-org",
+    });
+    expect(requestBody(request, 1)).toEqual({ passwordChange: false });
+  });
+
+  it("writes nothing when the organization's own policy already has it off", async () => {
+    const request = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(Response.json({ policy: {} }));
+    const client = new ZitadelClient("https://auth.freightclaims.com", "bootstrap-pat");
+
+    await client.disablePasswordChangeNotification("freightclaims-org");
+
+    expect(request).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe("ZitadelClient organization domains", () => {
   it("adds a native instance trusted domain", async () => {
     const request = vi.spyOn(globalThis, "fetch").mockResolvedValue(Response.json({}));

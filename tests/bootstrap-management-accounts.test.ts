@@ -74,6 +74,7 @@ function mockClient() {
     createProject: vi.fn().mockResolvedValue("freightcheck-project-id"),
     createServiceAccount: vi.fn().mockResolvedValue(undefined),
     deleteAdministrator,
+    disablePasswordChangeNotification: vi.fn().mockResolvedValue(undefined),
     disableInstanceLoginV2Override: vi.fn().mockResolvedValue(undefined),
     ensureAdministrator,
     ensureLoginPolicy: vi.fn().mockResolvedValue(undefined),
@@ -179,6 +180,18 @@ describe("product that owns the instance organization", () => {
       "freightcheck-organization-id",
       expect.anything(),
       undefined,
+    );
+  });
+});
+
+describe("password change notification", () => {
+  it("turns it off for the product's owner organization", async () => {
+    const { client } = mockClient();
+
+    await bootstrapCatalog(client, catalogFor(false), { rotateMissingSecrets: true });
+
+    expect(client.disablePasswordChangeNotification).toHaveBeenCalledWith(
+      "freightcheck-organization-id",
     );
   });
 });
