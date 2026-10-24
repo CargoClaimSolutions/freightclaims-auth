@@ -663,6 +663,26 @@ describe("ZitadelClient login policy default redirect", () => {
     });
   });
 
+  it("turns off passkeys an organization allows, so every account keeps a password", async () => {
+    const request = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(
+        Response.json({
+          policy: { ...existingPolicy, passwordlessType: "PASSWORDLESS_TYPE_ALLOWED" },
+          isDefault: false,
+        }),
+      )
+      .mockResolvedValueOnce(Response.json({}));
+    const client = new ZitadelClient("https://auth.ensombl.io", "bootstrap-pat");
+
+    await client.ensureLoginPolicy("freightclaims-org", desired);
+
+    expect(request.mock.calls[1]?.[1]?.method).toBe("PUT");
+    expect(requestBody(request, 1)).toMatchObject({
+      passwordlessType: "PASSWORDLESS_TYPE_NOT_ALLOWED",
+    });
+  });
+
   it("writes nothing when the organization already has the declared policy", async () => {
     const request = vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
       Response.json({

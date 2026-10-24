@@ -332,7 +332,10 @@ export class ZitadelClient {
       allowRegister: desired.allow_self_registration,
       allowExternalIdp: desired.allow_external_identity_providers,
       forceMfa: policy.forceMfa,
-      passwordlessType: policy.passwordlessType,
+      // Login V2's passkey screen has no password or reset option, so an account whose only
+      // method is a passkey the browser cannot use has no way back in. Without passkeys an
+      // invitee always sets a password, and such an account is sent to the password screen.
+      passwordlessType: "PASSWORDLESS_TYPE_NOT_ALLOWED",
       hidePasswordReset: !desired.allow_password_reset,
       ignoreUnknownUsernames: desired.ignore_unknown_usernames,
       defaultRedirectUri: desired.default_redirect_uri ?? policy.defaultRedirectUri,
