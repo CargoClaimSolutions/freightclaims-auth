@@ -65,6 +65,13 @@ streaming Login V2 and fails if the redirect row reaches the client before the r
 control, it also runs the configuration with nginx's default 4k buffers and fails if that baseline
 does not release the row early. It needs Docker and the `nginx` and `node:24-alpine` images.
 
+Login V2 is built from `deploy/zitadel-login/Dockerfile`: the upstream image of the same ZITADEL
+release as `zitadel-api`, with `recover-dead-sessions.mjs` applied to its compiled server code. An
+account whose remembered session token ZITADEL refuses would otherwise block every later sign-in
+with "An error occurred in the Server Components render"; with the patch Login V2 asks for the
+password and replaces the dead entry. The script explains the cause and fails the build when an
+upgrade changes the code it patches, so each Login V2 upgrade re-checks the patch or deletes it.
+
 ## Recovery
 
 Recovery uses a native PostgreSQL backup together with the matching reviewed Git revision. Configure

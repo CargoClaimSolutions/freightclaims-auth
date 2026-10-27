@@ -71,7 +71,9 @@ services:
       start_period: 30s
 
   zitadel-login:
-    image: ghcr.io/zitadel/zitadel-login:v4.16.2
+    build:
+      context: ../..
+      dockerfile: deploy/zitadel-login/Dockerfile
     restart: unless-stopped
     user: "0"
     environment:

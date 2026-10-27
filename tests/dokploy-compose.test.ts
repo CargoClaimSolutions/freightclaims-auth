@@ -271,6 +271,16 @@ function parseNginxStatements(
   return statements;
 }
 
+it("builds Login V2 from the same ZITADEL release as the API", () => {
+  const loginDockerfile = readFileSync(
+    new URL("../deploy/zitadel-login/Dockerfile", import.meta.url),
+    "utf8",
+  );
+  const apiRelease = /\n {4}image: ghcr\.io\/zitadel\/zitadel:(v[\d.]+)\n/.exec(hostedCompose)?.[1];
+  expect(apiRelease).toBeDefined();
+  expect(loginDockerfile).toContain(`FROM ghcr.io/zitadel/zitadel-login:${apiRelease}\n`);
+});
+
 it("requires native email verification for initialized invite recipients", () => {
   const loginService = hostedCompose
     .split("\n  zitadel-login:\n")[1]

@@ -119,7 +119,9 @@ services:
       - traefik.http.routers.${LOCAL_RUNTIME_ID:?LOCAL_RUNTIME_ID is required}-api.priority=100
 
   zitadel-login:
-    image: ghcr.io/zitadel/zitadel-login:v4.16.2
+    build:
+      context: .
+      dockerfile: deploy/zitadel-login/Dockerfile
     restart: unless-stopped
     user: "0"
     environment:
