@@ -24,6 +24,7 @@ export function runLocalAuthDevelopment(path = repositoryRoot): void {
   const profile = localAuthRuntimeProfile(path);
   const environment = localAuthComposeEnvironment(profile);
   mkdirSync(resolve(path, ".local"), { recursive: true });
+  execute(["build", "zitadel-login"], environment);
   execute(["up", "-d", "--wait"], environment);
   execute(["build", "product-bootstrap"], environment);
   execute(["run", "--rm", "product-bootstrap"], environment);

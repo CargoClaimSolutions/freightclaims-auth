@@ -45,9 +45,23 @@ function* javascriptFiles(directory) {
   }
 }
 
+// The second patch calls loadMostRecentSession through the module continueWithSession imports
+// isSessionValid from (`n=a.i(85397)`), so that module's export list (`a.s([...],85397)`) must
+// still name it, or every account click would throw.
+const sessionModuleIds = new Set();
+const exportLists = new Map();
 const counts = patches.map(() => ({ anchors: 0, replaced: 0 }));
 for (const file of javascriptFiles(serverDirectory)) {
   const original = readFileSync(file, "utf8");
+  for (const [, names, id] of original.matchAll(/\w+\.s\(\[([^\]]*)\],(\d+)\)/g)) {
+    exportLists.set(id, `${exportLists.get(id) ?? ""}${names},`);
+  }
+  for (const site of original.matchAll(patches[1].pattern)) {
+    const imports = original
+      .slice(0, site.index)
+      .matchAll(new RegExp(`\\b${site[1]}=\\w+\\.i\\((\\d+)\\)`, "g"));
+    sessionModuleIds.add([...imports].at(-1)?.[1]);
+  }
   let source = original;
   patches.forEach((patch, index) => {
     counts[index].anchors += source.split(patch.anchor).length - 1;
@@ -64,3 +78,13 @@ patches.forEach((patch, index) => {
   }
   console.log(`${patch.name}: patched ${replaced} of ${anchors} sites`);
 });
+for (const id of sessionModuleIds) {
+  if (!exportLists.get(id)?.includes('"loadMostRecentSession",')) {
+    throw new Error(
+      `continueWithSession's session module ${id} does not export loadMostRecentSession`,
+    );
+  }
+}
+console.log(
+  `loadMostRecentSession is exported by session module ${[...sessionModuleIds].join(", ")}`,
+);
