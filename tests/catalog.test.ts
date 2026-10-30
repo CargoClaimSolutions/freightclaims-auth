@@ -65,7 +65,6 @@ describe("product catalog", () => {
     const freightclaims = catalog.products.find((product) => product.id === "freightclaims");
     if (!freightclaims) throw new Error("Expected FreightClaims product");
     expect(rolesForProduct(catalog, freightclaims)).toEqual([
-      { key: "platform_support", display_name: "Platform Support" },
       { key: "platform_admin", display_name: "Platform Administrator" },
     ]);
     for (const product of catalog.products.filter(
